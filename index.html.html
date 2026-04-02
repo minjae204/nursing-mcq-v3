@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수술 전후 관리형 MCQ 자동생성 — 템플릿 C</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#f4f6f9; --surface:#fff; --surface2:#f0f2f5;
+    --border:#e2e6ec; --accent:#3b6ef8;
+    --solve:#e0440e; --green:#0a7c5c;
+    --rand:#6d28d9; --rand-bg:#f5f3ff; --rand-border:#c4b5fd;
+    --e-bg:#eff6ff; --e-border:#93c5fd; --e-text:#1d4ed8;
+    --c-bg:#fef2f2; --c-border:#fca5a5; --c-text:#b91c1c;
+    --text:#1a1d23; --text2:#6b7280; --text3:#adb5bd;
+    --shadow:0 1px 4px rgba(0,0,0,0.07),0 4px 16px rgba(0,0,0,0.04);
+    --r:10px; --rl:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px;}
+  h1{font-size:18px;font-weight:700;letter-spacing:-0.02em;}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;}
+  .badge-c{color:var(--solve);background:rgba(224,68,14,0.08);border:1px solid rgba(224,68,14,0.2);}
+  .badge-r{color:var(--rand);background:var(--rand-bg);border:1px solid var(--rand-border);}
+  .layout{display:grid;grid-template-columns:360px 1fr;gap:16px;margin-top:18px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px;box-shadow:var(--shadow);}
+  .panel-title{font-size:11px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+  .left-panel{max-height:85vh;overflow-y:auto;}
+  .field{margin-bottom:13px;}
+  .field-label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;}
+  .tag-e{background:var(--e-bg);border:1px solid var(--e-border);color:var(--e-text);}
+  .tag-c{background:var(--c-bg);border:1px solid var(--c-border);color:var(--c-text);}
+  select{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:8px 10px;outline:none;transition:border-color .2s;}
+  select:focus{border-color:var(--accent);}
+  .pills{display:flex;flex-wrap:wrap;gap:5px;}
+  .pill{font-size:11px;padding:5px 9px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:400;transition:all .15s;}
+  .pill:hover{border-color:#adb5bd;}
+  .pill.active-e{background:var(--e-bg);border-color:var(--accent);color:var(--e-text);font-weight:600;}
+  .pill.active-c{background:var(--c-bg);border-color:var(--solve);color:#c03800;font-weight:600;}
+  .pill.active-r{background:var(--rand-bg);border-color:var(--rand);color:var(--rand);font-weight:600;}
+  .all-rand-btn{width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--rand-border);background:var(--rand-bg);color:var(--rand);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;transition:all .15s;}
+  .all-rand-btn:hover{background:#ede9fe;}
+  .constraint-header{font-size:11px;color:var(--c-text);font-family:'JetBrains Mono',monospace;font-weight:600;background:var(--c-bg);border:1px solid var(--c-border);padding:4px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;}
+  hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+  .gen-btn{width:100%;padding:12px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .gen-btn:hover{background:#2d5ce6;transform:translateY(-1px);}
+  .gen-btn:disabled{background:var(--surface2);color:var(--text3);cursor:not-allowed;transform:none;}
+  .result-area{display:flex;flex-direction:column;gap:14px;}
+  .result-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:22px;min-height:300px;box-shadow:var(--shadow);}
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;color:var(--text3);gap:10px;}
+  .item-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);margin-bottom:10px;font-weight:500;}
+  .aux-box{background:#f0f6ff;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:11px 15px;margin-bottom:14px;font-size:13px;line-height:1.85;}
+  .stem{font-size:14px;line-height:1.9;margin-bottom:18px;font-weight:500;}
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:var(--r);border:1.5px solid var(--border);font-size:13px;line-height:1.6;margin-bottom:8px;background:#fff;}
+  .opt.correct{border-color:var(--green);background:#f0faf6;}
+  .opt-num{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);min-width:18px;padding-top:1px;}
+  .opt.correct .opt-num{color:var(--green);font-weight:600;}
+  .correct-mark{margin-left:auto;font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;}
+  .rationale{margin-top:12px;padding:10px 14px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);line-height:1.7;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .etag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 7px;border-radius:3px;background:var(--e-bg);border:1px solid var(--e-border);color:var(--e-text);}
+  .ctag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 7px;border-radius:3px;background:var(--c-bg);border:1px solid var(--c-border);color:var(--c-text);}
+  .copy-btn{font-size:12px;padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:500;transition:all .15s;}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .history-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;box-shadow:var(--shadow);}
+  .hist-item{padding:8px 12px;border-radius:var(--r);background:var(--surface2);border:1.5px solid var(--border);font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px;transition:all .15s;}
+  .hist-item:hover{border-color:var(--accent);color:var(--text);}
+  .skeleton{background:linear-gradient(90deg,#eef0f3 25%,#f8f9fa 50%,#eef0f3 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:6px;height:14px;margin-bottom:10px;}
+  .err{background:#fef2f2;border:1px solid #fecaca;color:#c0392b;padding:10px 13px;border-radius:var(--r);font-size:12px;margin-bottom:10px;display:none;}
+  .rand-count{font-size:10px;color:var(--rand);background:var(--rand-bg);border:1px solid var(--rand-border);padding:2px 8px;border-radius:4px;}
+  @keyframes shimmer{to{background-position:-200% 0;}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+  input[type=text]{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:8px 10px;outline:none;}
+  input[type=text]:focus{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+    <span class="badge badge-c">템플릿 C</span>
+    <span class="badge badge-r">🎲 랜덤 지원</span>
+    <h1>수술 전후 관리형 MCQ 자동생성</h1>
+  </div>
+  <p style="font-size:12px;color:var(--text2);">문제해결형 · Element(수술명/기간) + Constraint(사정자료) · 직접 선택 또는 🎲 랜덤 · 성인간호학</p>
+</div>
+
+<div class="layout">
+  <!-- 왼쪽 설정 -->
+  <div class="panel left-panel">
+    <div class="panel-title">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
+        인지모형 파라미터
+      </div>
+      <span class="rand-count" id="randCount">🎲 8개 랜덤</span>
+    </div>
+
+    <button class="all-rand-btn" onclick="setAllRand()">🎲 전체 랜덤으로 설정</button>
+
+    <!-- Elements -->
+    <div class="field">
+      <span class="field-label"><span class="tag tag-e">[E]</span>수술명</span>
+      <div class="pills" id="pills-op"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-e">[E]</span>수술 후 기간</span>
+      <div class="pills" id="pills-days"></div>
+    </div>
+
+    <hr>
+    <div class="constraint-header">[C] Constraints — 사정자료</div>
+
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>헤모글로빈(Hb)</span>
+      <div class="pills" id="pills-hb"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>혈압</span>
+      <div class="pills" id="pills-bp"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>배액 특성</span>
+      <div class="pills" id="pills-drain"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>체온</span>
+      <div class="pills" id="pills-temp"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>맥박</span>
+      <div class="pills" id="pills-pulse"></div>
+    </div>
+    <div class="field">
+      <span class="field-label"><span class="tag tag-c">[C]</span>산소포화도(SpO2)</span>
+      <div class="pills" id="pills-spo2"></div>
+    </div>
+
+    <hr>
+
+    <div class="field">
+      <span class="field-label">추가 조건 (선택)</span>
+      <input type="text" id="extra" placeholder="예: 출혈 중심, 감염 포함, 고령 환자">
+    </div>
+
+    <div class="err" id="errMsg"></div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">
+      <span id="genSpinner" style="display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span>
+      <span id="genTxt">문항 생성</span>
+    </button>
+  </div>
+
+  <!-- 오른쪽 결과 -->
+  <div class="result-area">
+    <div class="result-panel" id="resultPanel">
+      <div class="empty" id="emptyState">
+        <div style="font-size:30px;opacity:.25;">✦</div>
+        <div style="font-size:13px;">파라미터를 설정하고 문항을 생성해 주세요</div>
+        <div style="font-size:12px;color:#d1d5db;">🎲 랜덤으로 설정하면 Claude가 자동으로 선택해요</div>
+      </div>
+    </div>
+    <div class="history-panel" id="historyPanel" style="display:none;">
+      <div class="panel-title">생성 히스토리</div>
+      <div id="historyList" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 설정 =====
+// API 키는 Vercel 환경변수(ANTHROPIC_API_KEY)에 저장됩니다
+const PASSWORD_HASH = '7c5e8b3a9f2d1e6c4b0a8f3d2e7c5b9a1f4e8d2c6b0a3f7e1d5c9b2a4f6e8d0'; // rnrtldnjs의 해시
+const RAND = '랜덤';
+
+const OPTS = {
+  op: ["결장절제술","위절제술","담낭절제술","간절제술","직장절제술","췌장절제술","식도절제술","충수절제술","자궁절제술","신장절제술","폐엽절제술"],
+  days: ["1일","2일","3일","5일","7일","14일"],
+  hb: ["6.5 g/dL","7.5 g/dL","8.5 g/dL","9.5 g/dL","11.0 g/dL","13.0 g/dL"],
+  bp: ["80/50 mmHg","85/60 mmHg","100/70 mmHg","120/80 mmHg","150/90 mmHg"],
+  drain: ["선홍색 100mL/시간","선홍색 30mL/시간","혼탁한 황색 50mL/시간","담즙색 80mL/시간","장액혈성 20mL/시간"],
+  temp: ["36.0℃","37.2℃","38.5℃","39.2℃"],
+  pulse: ["50회/분","90회/분","110회/분","130회/분"],
+  spo2: ["88%","92%","95%","98%"],
+};
+
+const TYPE = { op:'e', days:'e', hb:'c', bp:'c', drain:'c', temp:'c', pulse:'c', spo2:'c' };
+let vals = { op:RAND, days:RAND, hb:RAND, bp:RAND, drain:RAND, temp:RAND, pulse:RAND, spo2:RAND };
+let itemCount = 0;
+let historyArr = [];
+let currentItem = null;
+
+// 초기화
+function initPills() {
+  Object.entries(OPTS).forEach(([key, options]) => {
+    const el = document.getElementById(`pills-${key}`);
+    if (!el) return;
+    const t = TYPE[key];
+    // 랜덤 버튼
+    el.innerHTML = `<button class="pill active-r" data-key="${key}" data-val="${RAND}" onclick="selectPill(this,'${key}','${RAND}')">🎲 랜덤</button>`;
+    options.forEach(o => {
+      el.innerHTML += `<button class="pill" data-key="${key}" data-val="${o}" onclick="selectPill(this,'${key}','${o}')">${o}</button>`;
+    });
+  });
+  updateRandCount();
+}
+
+function selectPill(btn, key, val) {
+  vals[key] = val;
+  const container = document.getElementById(`pills-${key}`);
+  const t = TYPE[key];
+  container.querySelectorAll('.pill').forEach(p => {
+    p.className = 'pill';
+    if (p.dataset.val === val) {
+      p.className = val === RAND ? 'pill active-r' : `pill active-${t}`;
+    }
+  });
+  updateRandCount();
+}
+
+function setAllRand() {
+  Object.keys(vals).forEach(key => selectPill(
+    document.querySelector(`#pills-${key} [data-val="${RAND}"]`), key, RAND
+  ));
+}
+
+function updateRandCount() {
+  const n = Object.values(vals).filter(v => v === RAND).length;
+  document.getElementById('randCount').textContent = `🎲 ${n}개 랜덤`;
+}
+
+function buildConstraintStr() {
+  const fixed = [], rand = [];
+  const labels = { hb:'헤모글로빈', bp:'혈압', drain:'배액', temp:'체온', pulse:'맥박', spo2:'산소포화도' };
+  Object.entries(labels).forEach(([k, label]) => {
+    if (vals[k] === RAND) rand.push(`- ${label}: 임상적으로 적합한 값 자동 선택`);
+    else fixed.push(`- ${label}: ${vals[k]} (고정값)`);
+  });
+  return [...fixed, ...rand].join('\n');
+}
+
+async function generate() {
+  const btn = document.getElementById('genBtn');
+  const spinner = document.getElementById('genSpinner');
+  const genTxt = document.getElementById('genTxt');
+  const errMsg = document.getElementById('errMsg');
+
+  if (API_KEY === 'YOUR_API_KEY_HERE') {
+    errMsg.style.display = 'block';
+    errMsg.textContent = 'HTML 파일에서 API_KEY를 실제 키로 교체해 주세요.';
+    return;
+  }
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  genTxt.textContent = '생성 중...';
+  errMsg.style.display = 'none';
+
+  const panel = document.getElementById('resultPanel');
+  panel.innerHTML = [90,70,80,65,75,60,70].map(w =>
+    `<div class="skeleton" style="width:${w}%"></div>`
+  ).join('');
+
+  const opStr = vals.op === RAND ? '임상적으로 적합한 수술명 자동 선택' : vals.op;
+  const dayStr = vals.days === RAND ? '임상적으로 적합한 기간 자동 선택' : vals.days;
+
+  const systemPrompt = `당신은 한국 간호사 국가시험 문항 자동생성 전문가입니다.
+반드시 아래 JSON만 출력하세요. 마크다운 없이 JSON만 응답하세요.
+
+{
+  "stem": "문항줄기 (끝에 물음표)",
+  "auxiliaryInfo": "보조정보 (• 항목1\\n• 항목2\\n• 항목3 형태로 사정자료 3~4개, 고정값 반드시 포함)",
+  "options": ["내용1","내용2","내용3","내용4","내용5"],
+  "correctIndex": 0,
+  "rationale": "정답 근거 한 문장",
+  "usedElements": {"수술명": "실제값", "수술후기간": "실제값"},
+  "usedConstraints": {"변수명": "수치"}
+}
+
+문항 유형: 수술 전후 관리형 문제해결형 (국시원 분류)
+
+인지모형 구조 (Gierl & Lai, 2012):
+[Elements]
+- 수술명: ${opStr}
+- 수술 후 기간: ${dayStr}
+
+[Constraints — 사정자료]
+${buildConstraintStr()}
+
+규칙:
+1. 고정값은 반드시 보조정보에 사용
+2. 자동 선택은 임상적으로 의미 있는 값을 선택
+3. 사정자료 3~4개가 하나의 임상 판단으로 수렴
+4. 5지선다 최선답형, 국가시험 수준
+5. 오답은 우선순위 오류형
+6. correctIndex 0~4`;
+
+  const userPrompt = `위 인지모형에 근거하여 수술 전후 관리형 MCQ 1문항을 생성하세요.
+${document.getElementById('extra').value ? '추가 조건: ' + document.getElementById('extra').value : ''}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const item = JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    itemCount++;
+    item.num = itemCount;
+    currentItem = item;
+    renderItem(item);
+    addHistory(item);
+  } catch(e) {
+    panel.innerHTML = `<div class="empty"><div style="font-size:28px;opacity:.4;">⚠</div><div style="color:var(--solve);font-size:13px;">오류: ${e.message}</div></div>`;
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    genTxt.textContent = '문항 생성';
+  }
+}
+
+function renderItem(item) {
+  const panel = document.getElementById('resultPanel');
+  panel.innerHTML = `
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600;background:#fff5f2;color:#c03800;border:1px solid var(--solve);">문제해결형</span>
+          <span style="font-size:11px;color:var(--text3);">수술 전후 관리형</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="copy-btn" id="copyTextBtn" onclick="copyItem('text')">📋 텍스트 복사</button>
+          <button class="copy-btn" id="copyExcelBtn" onclick="copyItem('excel')">📊 엑셀 복사</button>
+        </div>
+      </div>
+      <div class="item-num">문항 #${String(item.num).padStart(3,'0')}</div>
+      ${item.auxiliaryInfo ? `<div class="aux-box">${item.auxiliaryInfo.replace(/\n/g,'<br>')}</div>` : ''}
+      <div class="stem">${item.stem}</div>
+      <div>${item.options.map((o,i) => `
+        <div class="opt${i===item.correctIndex?' correct':''}">
+          <span class="opt-num">${i+1}</span>
+          <span style="flex:1">${o}</span>
+          ${i===item.correctIndex?'<span class="correct-mark">✓ 정답</span>':''}
+        </div>`).join('')}
+      </div>
+      ${item.rationale ? `<div class="rationale"><span style="font-weight:600;color:var(--text);">정답 근거: </span>${item.rationale}</div>` : ''}
+      <div class="tags">
+        ${Object.entries(item.usedElements||{}).map(([k,v])=>`<span class="etag">[E] ${k}: ${v}</span>`).join('')}
+        ${Object.entries(item.usedConstraints||{}).map(([k,v])=>`<span class="ctag">[C] ${k}: ${v}</span>`).join('')}
+      </div>
+    </div>`;
+}
+
+function addHistory(item) {
+  historyArr.unshift(item);
+  if (historyArr.length > 8) historyArr.pop();
+  const panel = document.getElementById('historyPanel');
+  panel.style.display = 'block';
+  document.getElementById('historyList').innerHTML = historyArr.map((h,i) => `
+    <div class="hist-item" onclick="loadHistory(${i})">
+      <div style="display:flex;gap:6px;margin-bottom:3px;">
+        <span style="font-size:10px;padding:1px 6px;border-radius:3px;background:#fff5f2;color:#c03800;border:1px solid var(--solve);">문제해결형</span>
+        <span style="font-size:10px;color:var(--text3);">${h.usedElements?.수술명||'?'} · ${h.usedElements?.수술후기간||'?'}째 · #${String(h.num).padStart(3,'0')}</span>
+      </div>
+      <div style="color:var(--text)">${(h.stem||'').slice(0,50)}${(h.stem||'').length>50?'…':''}</div>
+    </div>`).join('');
+}
+
+function loadHistory(i) {
+  currentItem = historyArr[i];
+  renderItem(historyArr[i]);
+}
+
+function buildText(item) {
+  const lines = [
+    `[문항 #${String(item.num).padStart(3,'0')}] 성인간호학 · 수술 전후 관리형 · 문제해결형`, '',
+    item.stem, '', '【보조정보】', item.auxiliaryInfo||'', '',
+  ];
+  item.options?.forEach((o,i) => lines.push(`${i+1}. ${o}${i===item.correctIndex?' ← 정답':''}`));
+  lines.push('', `정답: ${item.correctIndex+1}번`);
+  if (item.rationale) lines.push('', `【근거】 ${item.rationale}`);
+  if (item.usedElements) { lines.push('','【Elements】'); Object.entries(item.usedElements).forEach(([k,v])=>lines.push(`[E] ${k}: ${v}`)); }
+  if (item.usedConstraints) { lines.push('','【Constraints】'); Object.entries(item.usedConstraints).forEach(([k,v])=>lines.push(`[C] ${k}: ${v}`)); }
+  return lines.join('\n');
+}
+
+function buildExcel(item) {
+  const elems = Object.entries(item.usedElements||{}).map(([k,v])=>`[E]${k}:${v}`).join(' / ');
+  const consts = Object.entries(item.usedConstraints||{}).map(([k,v])=>`[C]${k}:${v}`).join(' / ');
+  return [
+    `#${String(item.num).padStart(3,'0')}`, '성인간호학', '수술 전후 관리형', '문제해결형',
+    item.usedElements?.수술명||'', item.usedElements?.수술후기간||'',
+    item.auxiliaryInfo?.replace(/\n/g,' ')||'', item.stem,
+    ...(item.options||[]), String(item.correctIndex+1), item.rationale||'', elems, consts
+  ].join('\t');
+}
+
+function copyItem(type) {
+  if (!currentItem) return;
+  const text = type === 'text' ? buildText(currentItem) : buildExcel(currentItem);
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(type==='text'?'copyTextBtn':'copyExcelBtn');
+    if (btn) { btn.textContent = '✓ 복사됨'; setTimeout(()=>btn.textContent=type==='text'?'📋 텍스트 복사':'📊 엑셀 복사', 1500); }
+  });
+}
+
+// 초기화 실행
+initPills();
+</script>
+</body>
+</html>
